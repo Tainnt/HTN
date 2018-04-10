@@ -121,34 +121,34 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-uart-v4.out \
+uart-v5.out \
 
 EXE_OUTPUTS__QUOTED += \
-"uart-v4.out" \
+"uart-v5.out" \
 
 BIN_OUTPUTS += \
-uart-v4.hex \
+uart-v5.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"uart-v4.hex" \
+"uart-v5.hex" \
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "uart-v4.out"
+	@$(MAKE) --no-print-directory -Onone "uart-v5.out"
 
 # Tool invocations
-uart-v4.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+uart-v5.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: MSP430 Linker'
-	"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/bin/cl430" -vmsp --use_hw_mpy=none --advice:power=all --define=__MSP430G2553__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"uart-v4.map" --heap_size=80 --stack_size=80 -i"D:/TI/ccsv7/ccs_base/msp430/include" -i"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/lib" -i"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="uart-v4_linkInfo.xml" --use_hw_mpy=none --rom_model -o "uart-v4.out" $(ORDERED_OBJS)
+	"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/bin/cl430" -vmsp --use_hw_mpy=none --advice:power=all --define=__MSP430G2553__ -g --printf_support=minimal --diag_warning=225 --diag_wrap=off --display_error_number -z -m"uart-v5.map" --heap_size=80 --stack_size=80 -i"D:/TI/ccsv7/ccs_base/msp430/include" -i"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/lib" -i"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="uart-v5_linkInfo.xml" --use_hw_mpy=none --rom_model -o "uart-v5.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
-uart-v4.hex: $(EXE_OUTPUTS)
+uart-v5.hex: $(EXE_OUTPUTS)
 	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: MSP430 Hex Utility'
-	"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/bin/hex430" --memwidth=8 --romwidth=8 -o "uart-v4.hex" $(EXE_OUTPUTS__QUOTED)
+	"D:/TI/ccsv7/tools/compiler/ti-cgt-msp430_16.9.6.LTS/bin/hex430" --memwidth=8 --romwidth=8 -o "uart-v5.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 
