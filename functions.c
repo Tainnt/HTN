@@ -63,25 +63,10 @@ void UART_SendChar(unsigned char byte)
 char UART_GetChar()
 {
     while (!(IFG2 & UCA0RXIFG)); // Doi nhan xong ky tu truoc
-    return UCA0RXBUF; // Moi cho phep nhan ky tu tiep theo
+    return UCA0RXBUF;           // Moi cho phep nhan ky tu tiep theo
 }
 
 //***********************************************************************************************************
-
-void UART_SaveString(char* string)
-{
-    unsigned int i = 0;
-    do
-    {
-        if(string[i] != '\n')
-        {
-            string[i] = UART_GetChar();
-            i++;
-        }
-        else
-            i++;
-    }while(string[i] != '\0');
-}
 /*
 char* Get_AP1(char* ReceivedString, char* AP1_SSID, int length)
 {
@@ -127,7 +112,7 @@ char* Get_AP1(char* ReceivedString, char* AP1_SSID, int length)
     return AP1;
 }
 */
-
+//***********************************************************************************************************
 int Get_RSSI(char* ReceivedString)
 {
     unsigned int i = 8;                                     // the index of the first '"'
@@ -142,18 +127,13 @@ int Get_RSSI(char* ReceivedString)
 
     return RSSI;
 }
-
-void Commander()
+//***********************************************************************************************************
+/*
+ *send AT command from SSID
+ */
+void SendCommand(char* SSID)
 {
-    char p[]="abc";
-    UART_SendString(p);
-    _delay_cycles(1*1000000);
-}
-
-void SendCommand(char* SSID_1)
-{
-    UART_SendString("AT+CWLAP=");
-    UART_SendString("\"");
-    UART_SendString(SSID_1);
+    UART_SendString("AT+CWLAP=\"");
+    UART_SendString(SSID);
     UART_SendString("\"\r\n");
 }

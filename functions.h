@@ -15,10 +15,7 @@ void Config_USCI();
 void UART_SendString(char* s);
 void UART_SendChar(unsigned char byte);
 char UART_GetChar();
-void UART_SaveString(char* string);
-
 int Get_RSSI(char* ReceivedString);
-void Commander();
-void SendCommand(char* SSID_1);
+void SendCommand(char* SSID);
 
 #endif /* FUNCTIONS_H_ */
