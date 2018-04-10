@@ -14,7 +14,7 @@
 #define BUTTON BIT3
 #define ESP_check "AT"
 #define ESP_getInfo "AT+CWLAP"
-
+unsigned char s[4]="a12";
 void Config_Clock()
 {
     if(CALBC1_8MHZ == 0xFF)
@@ -46,36 +46,13 @@ void Config_IO()
 {
     P1OUT = 0x00;
     P1DIR = TX_LED + RX_LED;                                // P1.6 and P1.0: outputs
-    /*
-    P1DIR &= BUTTON;                                        // P1.3: input
-    P1REN |= BUTTON;                                        // Enable pull resistor on pin P1.3
-    P1OUT |= BUTTON;                                        // Enable pull up resistor
-
-    P1IFG &= 0x00;                                          // Clear all interrupt flags, just to make sure
-    P1IES |= BUTTON;                                        // Edge select on BUTTON: HIGH to LOW transition
-    P1IE |= BUTTON;                                         // Enable Interrupt
-    */
 }
 
 
-void Test_Clock()
+void UartSentChar(unsigned char data)
 {
-    /*
-     * If you are not measuring execution time but just clock frequencies, then you can use ACLK and SMCLK output option:
-     * Just put this function after the Stop-The-Watchdog instruction
-     * Just test the frequency on P1.4 using oscilloscope ?? :D ??
-     */
-    BCSCTL1 = CALBC1_16MHZ;                                 // this frequency for example
-    DCOCTL = CALDCO_16MHZ;
-    P1DIR |= 0x13;                                          // P1.0,1 and P1.4 outputs
-    P1SEL |= 0x11;                                          // P1.0,4 ACLK, SMCLK output
-
-}
-
-void UartSentChar(unsigned char byte)
-{
-    while(!(IFG2 & UCA0TXIFG)) {}
-    UCA0TXBUF = byte;
+    while (!(IFG2&UCA0TXIFG)); // Doi gui xong ky tu truoc
+    UCA0TXBUF= data; // Moi cho phep gui ky tu tiep theo
 }
 
 void UartSendString(unsigned char s[])
@@ -85,40 +62,35 @@ void UartSendString(unsigned char s[])
     {
         UartSentChar(s[i]);
         i++;
-    }while(s[i]!='\0');                                 //check the string is done yet? ('\0' mean the char is null)
+    }while(s[i]!='\0');          //check the string is done yet? ('\0' mean the char is end)
+    //UartSentChar('\r');
+    //UartSentChar('\n');
+    UartSentChar('\0');
 }
 
 char UartReadChar()
 {
-    while (!(IFG2 & UCA0RXIFG)); // Doi gui xong ky tu truoc
+    while (!(IFG2 & UCA0TXIFG)); // Doi gui xong ky tu truoc
     return UCA0RXBUF; // Moi cho phep nhan ky tu tiep theo
 }
 
-void UartReadString(char s[])
-{
-    unsigned int i = 0;
-    do
-    {
-        if(s[i]!='\n')
-        {
-            s[i] = UartReadChar();
-            i++;
-        }
-        else
-            i++;
-    }while(s[i]!='\0');
-}
 
 void Commander()
 {
     //char *x;
     //UartSentChar('T');
     //UartSendString(ESP_check);
-    //
-    //UartSendString("abc\n");
+    //unsigned char p[]="abc";
+    //UartSendString(p);
     //_delay_cycles(1*8000000);
-    //UartReadString(x);
    // UartSendString(x);
+}
 
+void Commander2()
+{
+    if(s[0]=='a' && s[1]=='1' && s[2]=='2')
+        UartSendString("Right\n");
+    else
+        UartSendString("Wrong\n");
 }
 
