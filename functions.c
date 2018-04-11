@@ -1,11 +1,7 @@
-/*
- * functions.c
- *
- *  Created on: Apr 5, 2018
- *      Author: Cong Phase
- */
 #include <msp430.h>
 #include "functions.h"
+float dis[3];
+float x=0,y=0;
 void Config_Clock()
 {
     if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
@@ -23,6 +19,9 @@ void Config_Pins()
 {
     P1SEL = BIT1 + BIT2 ;                     // P1.1 = RXD, P1.2=TXD
     P1SEL2 = BIT1 + BIT2 ;                    // P1.1 = RXD, P1.2=TXD
+    P1DIR &= ~BIT3;
+    P1REN |= BIT3;
+    P1OUT |= BIT3;
 }
 
 //***********************************************************************************************************
@@ -39,7 +38,13 @@ void Config_USCI()
 }
 
 //***********************************************************************************************************
+void UART_SendChar(unsigned char byte)
+{
+    while(!(IFG2 & UCA0TXIFG)) {}
+    UCA0TXBUF = byte;
+}
 
+//***********************************************************************************************************
 void UART_SendString(char* s)
 {
     unsigned int i = 0;
@@ -51,15 +56,53 @@ void UART_SendString(char* s)
 }
 
 //***********************************************************************************************************
-
-void UART_SendChar(unsigned char byte)
+void UART_SendInt(unsigned long n)
 {
-    while(!(IFG2 & UCA0TXIFG)) {}
-    UCA0TXBUF = byte;
+    unsigned char buffer[16];
+     unsigned char i,j;
+
+     if(n == 0) {
+         UART_SendChar('0');
+          return;
+     }
+
+     for (i = 15; i > 0 && n > 0; i--) {
+          buffer[i] = (n%10)+'0';
+          n /= 10;
+     }
+
+     for(j = i+1; j <= 15; j++) {
+         UART_SendChar(buffer[j]);
+     }
 }
 
 //***********************************************************************************************************
+void UART_SendFloat(float x, unsigned char length)
+{
+    unsigned long temp;
+    if(length>4)length=4;
+    // de trong 1 ki tu o dau cho hien thi dau
+    if(x<0)
+    {
+        UART_SendChar('-');           //In so am
+        x*=-1;
+    }
+    temp = (unsigned long)x;          // Chuyan thanh so nguyen.
 
+    UART_SendInt(temp);
+
+    x=((float)x-temp);//*mysqr(10,coma);
+    if(length!=0)UART_SendChar('.');    // In ra dau "."
+    while(length>0)
+    {
+        x*=10;
+        length--;
+    }
+    temp=(unsigned long)(x+0.5);    //Lam tron
+    UART_SendInt(temp);
+}
+
+//***********************************************************************************************************
 char UART_GetChar()
 {
     while (!(IFG2 & UCA0RXIFG)); // Doi nhan xong ky tu truoc
@@ -113,6 +156,9 @@ char* Get_AP1(char* ReceivedString, char* AP1_SSID, int length)
 }
 */
 //***********************************************************************************************************
+/*
+ * Get RSSI from ReceivedString
+ */
 int Get_RSSI(char* ReceivedString)
 {
     unsigned int i = 8;                                     // the index of the first '"'
@@ -136,4 +182,63 @@ void SendCommand(char* SSID)
     UART_SendString("AT+CWLAP=\"");
     UART_SendString(SSID);
     UART_SendString("\"\r\n");
+}
+//***********************************************************************************************************
+/*
+ * power function
+ */
+double pow(int a,int b)
+{
+    int i,result=1;
+    for(i=0;i<b;i++)
+    {
+        result=result*a;
+    }
+    return result;
+}
+
+//  function    :   find position
+//  3 wifi device: W1(0,0), W2(x2, 0), W3(x3, y3)
+//  Oject: M(x, y)
+
+float distance(int rssi)
+{
+    //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
+    int rssi1m = -37;
+    int n = 2;
+    return (pow( 10, (rssi1m - rssi) / (10*n) ));
+}
+/*
+float distance_meter(int RSSI_dB)
+{
+    freqMHz = 2400;
+    Exp = (1.0/20) * ( 27.55 - 20*log10(freqMHz) - RSSI_dB)
+    return (pow( 10, Exp ));
+}
+*/
+// x (Oject)
+float x_oject(float d1, float d2, float x3)
+{
+    return ( (pow(d1, 2) - pow(d2, 2) + pow(x3, 2)) / (2*x3));
+}
+// y (Oject)
+float y_oject(float d1, float d3, float x3, float y3, float Xoject)
+{
+    return ( ( ( pow(d1,2) - pow(d3,2) + pow(x3,2) + pow(y3,2) ) / (2*y3) ) - (Xoject*x3/y3) );
+}
+
+void CaculatePosition(int RSSI[3],int one[2],int two[2],int three[2])
+{
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        dis[i]=distance(RSSI[i]);
+    }
+    x=x_oject(dis[1], dis[2], three[0]);
+    y=y_oject(dis[1], dis[3], three[0], three[1], x);
+    UART_SendChar('[');
+    UART_SendFloat(x, 2);
+    UART_SendChar(',');      //kí tự dấu phẩy
+    UART_SendFloat(y, 2);
+    UART_SendChar(']');
 }
