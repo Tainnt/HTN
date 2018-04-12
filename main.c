@@ -1,14 +1,14 @@
 #include <msp430.h>
 #include "functions.h"
 
-char* SSID[3]={"hahaha","Ngoc Anh","Tuongvypro"};       // mảng kí tự lưu tên 3 wifi cần lấy thông tin
+char* SSID[3]={"iPhone","M.A","Stark Lee"};       // mảng kí tự lưu tên 3 wifi cần lấy thông tin
 char ReceivedString[100];                               // mảng kí tự nhận được từ esp8266
 unsigned int i=0;                                       // biến đếm cho mảng ReceivedString
 int RSSI[3];                                            // mảng chứa rssi tương ứng với 3 tên wifi
 int endString=0;                                        // biến trạng thái xác định chuỗi đã kết thúc
-int one[2]={0,0};                                       // mảng vị trí wifi thứ nhất
-int two[2]={7,0};                                       // mảng vị trí wifi thứ hai
-int three[2]={5,6};                                     // mảng vị trí wifi thứ ba
+int w1[2]={0,0};                                       // mảng vị trí wifi thứ nhất
+int w2[2]={0,940};                                       // mảng vị trí wifi thứ hai
+int w3[2]={540,940};                                     // mảng vị trí wifi thứ ba
 
 int main(void)
 {
@@ -16,6 +16,8 @@ int main(void)
     Config_Clock();                                     // Thiết lập xung cho hệ thống
     Config_Pins();                                      // Thiết lập các ngõ ra vào cho hệ thống
     Config_USCI();                                      // Cài đặt cho chế độ uart
+    //UART_SendString("AT+CWMODE=2\r\n");
+    //_delay_cycles(1000000);
     UART_SendString("AT+CWLAPOPT=1,6\r\n");             // Cài đặt chế độ để 8266 chỉ trả về tên wifi và rssi
     _delay_cycles(1000000);
     while(1)
@@ -40,7 +42,7 @@ int main(void)
                 RSSI[2] = Get_RSSI(ReceivedString);     // lấy rssi tương ứng với tên wifi thứ ba
                 endString=0;                            // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
 
-                CaculatePosition(RSSI,one,two,three);   // hàm tính toán vị trí và xuất ra trên serial
+                CaculatePosition(RSSI,w1,w2,w3);   // hàm tính toán vị trí và xuất ra trên serial
                 while((P1IN & BIT3) != BIT3);           // kiểm tra khi thả nút nhất mới thực hiện tiếp
             }
         }

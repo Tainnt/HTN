@@ -14,9 +14,10 @@ int Get_RSSI(char* ReceivedString);
 void SendCommand(char* SSID);
 float distance(int rssi);
 float distance_meter(int RSSI_dB);
-float x_oject(float d1, float d2, float x3);
-float y_oject(float d1, float d3, float x3, float y3, float x_oject);
-void CaculatePosition(int RSSI[3],int one[2],int two[2],int three[2]);
-double pow(int a,int b);
+float x_object(float d1, float d3, float x3, float y3, float yoject);
+float y_object(float d1, float d2, float y2, float x2);
+void CaculatePosition(int RSSI[3],int w1[2],int w2[2],int w3[2]);
+float pow(int a,float b);
+float pow2(float a,int b);
 
 #endif /* FUNCTIONS_H_ */
