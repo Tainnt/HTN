@@ -1,14 +1,14 @@
 #include <msp430.h>
 #include "functions.h"
 
-char* SSID[3]={"iPhone","M.A","Stark Lee"};       // mảng kí tự lưu tên 3 wifi cần lấy thông tin
+char* SSID[3]={"iPhone","M.A","Stark Lee"};             // mảng kí tự lưu tên 3 wifi cần lấy thông tin
 char ReceivedString[100];                               // mảng kí tự nhận được từ esp8266
 unsigned int i=0;                                       // biến đếm cho mảng ReceivedString
-int RSSI[3];                                            // mảng chứa rssi tương ứng với 3 tên wifi
 int endString=0;                                        // biến trạng thái xác định chuỗi đã kết thúc
-int w1[2]={0,0};                                       // mảng vị trí wifi thứ nhất
-int w2[2]={0,940};                                       // mảng vị trí wifi thứ hai
-int w3[2]={540,940};                                     // mảng vị trí wifi thứ ba
+int RSSI[3]={-70,-57,-54};                              // mảng chứa rssi tương ứng với 3 tên wifi
+float w1[2]={0,0};                                        // mảng vị trí wifi thứ nhất
+float w2[2]={0,940};                                      // mảng vị trí wifi thứ hai
+float w3[2]={540,940};                                    // mảng vị trí wifi thứ ba
 
 int main(void)
 {
@@ -42,7 +42,7 @@ int main(void)
                 RSSI[2] = Get_RSSI(ReceivedString);     // lấy rssi tương ứng với tên wifi thứ ba
                 endString=0;                            // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
 
-                CaculatePosition(RSSI,w1,w2,w3);   // hàm tính toán vị trí và xuất ra trên serial
+                CalculatPosition(RSSI,w2[0],w2[1],w3[0],w3[1]);   // hàm tính toán vị trí và xuất ra trên serial
                 while((P1IN & BIT3) != BIT3);           // kiểm tra khi thả nút nhất mới thực hiện tiếp
             }
         }

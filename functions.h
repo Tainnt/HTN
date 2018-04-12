@@ -13,11 +13,8 @@ char UART_GetChar();
 int Get_RSSI(char* ReceivedString);
 void SendCommand(char* SSID);
 float distance(int rssi);
-float distance_meter(int RSSI_dB);
-float x_object(float d1, float d3, float x3, float y3, float yoject);
-float y_object(float d1, float d2, float y2, float x2);
-void CaculatePosition(int RSSI[3],int w1[2],int w2[2],int w3[2]);
-float pow(int a,float b);
-float pow2(float a,int b);
+double x_object(double d1, double d3, double x3, double y3, double yoject);
+double y_object(double d1, double d2, double y2, double x2);
+void CalculatPosition(int RSSI[],float a,float b,float c,float d);
 
 #endif /* FUNCTIONS_H_ */

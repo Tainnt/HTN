@@ -1,9 +1,9 @@
 #include <msp430.h>
 #include "functions.h"
-//#include "math.h"
+#include <math.h>
 float dis[3];
-float x=0,y=0;
-float pwr[9]={1.259,1.585,1.995,2.512,3.162,3.981,5.012,6.31,7.943};
+float x=0;
+float y=0;
 void Config_Clock()
 {
     if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
@@ -186,38 +186,6 @@ void SendCommand(char* SSID)
     UART_SendString("\"\r\n");
 }
 //***********************************************************************************************************
-/*
- * power function
- */
-
-float pow(int a,float b)
-{
-    int nguyen = (b*10)/10;
-    int thapPhan;
-    if(b>=1)
-        thapPhan = (b*10)-10;
-    else if(b<1)
-        thapPhan = (b*10);
-    float result=1.0;
-    if(nguyen==0)
-        result=1;
-    else if(nguyen==1)
-        result=10;
-    result=result*pwr[thapPhan-1];
-    return result;
-}
-
-float pow2(float a,int b)
-{
-    int i,result=1;
-    for(i=0;i<b;i++)
-    {
-        result=result*a;
-    }
-    return result;
-}
-
-
 //  function    :   find position
 //  3 wifi device: W1(0,0), W2(x2, 0), W3(x3, y3)
 //  Oject: M(x, y)
@@ -227,43 +195,32 @@ float distance(int rssi)
     //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
     int rssi1m = -37;
     int n = 3;
-    return (pow( 10, (rssi1m - rssi) / (10.0*n) ));
+    return (powf( 10, (rssi1m - rssi)*1.0 / (10.0*n) ));
 }
-/*
-float distance_meter(int RSSI_dB)
-{
-    freqMHz = 2400;
-    Exp = (1.0/20) * ( 27.55 - 20*log10(freqMHz) - RSSI_dB)
-    return (pow( 10, Exp ));
-}
-*/
-// x (Oject)
-float y_object(float d1, float d2, float y2, float x2)
-{
-    return ( /*(pow2(d1, 2) - pow2(d2, 2) + pow2(y2, 2)) /*/ (2*x2));
-    //return ( (pow(d1, 2) - pow2(d2, 2) + pow2(y2, 2)) / (2.0*x2));
-}
-// y (Oject)
-float x_object(float d1, float d3, float x3, float y3, float yoject)
-{
-    return ( ( ( pow2(d1,2) - pow2(d3,2) + pow2(x3,2) + pow2(y3,2) ) / (2*x3) ) - (1*yoject*y3/x3));
-    //return ( ( ( pow(d1,2) - pow(d3,2) + pow(x3,2) + pow(y3,2) ) / (2.0*x3) ) - (1.0*yoject*y3/x3) );
-}
-
-void CaculatePosition(int RSSI[3],int w1[2],int w2[2],int w3[2])
+// w1(0;0)      -> d1
+// w2(a;b)      -> d2 . Nếu có (0 ; y) thì chọn là W2
+// w3(c;d)      -> d3
+// Object(x;y)
+void CalculatPosition(int RSSI[],float a,float b,float c,float d)
 {
     int i;
     for (i = 0; i < 3; i++)
     {
         dis[i]=distance(RSSI[i]);
     }
+    float d12   = dis[0]*dis[0] - dis[1]*dis[1];
+    float d13   = dis[0]*dis[0] - dis[2]*dis[2];
+    float ab    = powf(a,2) + powf(b,2);
+    float cd    = powf(c,2) + powf(d,2);
 
-    y=y_object(dis[0], dis[1], w2[1], w2[0]);
+    float y1 = 0.5/(b*c - d*a);
+    float y2 = c*(d12 + ab) - a*(d13 + cd);
+    y = y1*y2;
+    x = (0.5/c) * (d13 + cd - 2.0*y*d);
 
-    x=x_object(dis[0], dis[2], w3[0],w3[1],y);
     UART_SendChar('[');
     UART_SendFloat(x, 2);
-    UART_SendChar(',');      //kí tự dấu phẩy
+    UART_SendChar(',');
     UART_SendFloat(y, 2);
     UART_SendChar(']');
 }
