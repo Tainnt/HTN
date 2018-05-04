@@ -1,9 +1,11 @@
 #include <msp430.h>
 #include "functions.h"
 #include <math.h>
+
 float dis[3];
-float x=0;
-float y=0;
+int x=0;
+int y=0;
+
 void Config_Clock()
 {
     if (CALBC1_1MHZ==0xFF)                    // If calibration constant erased
@@ -24,6 +26,8 @@ void Config_Pins()
     P1DIR &= ~BIT3;
     P1REN |= BIT3;
     P1OUT |= BIT3;
+    P1DIR |= BIT0 +BIT6;
+    P1OUT &= ~(BIT0 +BIT6);
 }
 
 //***********************************************************************************************************
@@ -113,52 +117,6 @@ char UART_GetChar()
 
 //***********************************************************************************************************
 /*
-char* Get_AP1(char* ReceivedString, char* AP1_SSID, int length)
-{
-    char AP1[2];                                            // 2 elements: [0] -> Index Number, [1] -> RSSI
-    AP1[0] = '1';                                           // Just assume it to 1, no need to care about its SSID anymore
-
-    unsigned int i = 7;                                     // +CWLAP: takes 7 spaces, from 0 to 6
-
-    while(ReceivedString[i] != '\0')                        // search throughout the entire received string
-    {
-        if(ReceivedString[i] == '(' )                       // searching from left to right, if '(' is met for the first time, then start comparing
-        {
-            do
-            {
-                int j;
-                for(j = 0; j < length; j++)
-                {
-                    if(ReceivedString[i+2] == AP1_SSID[j])  // +2 from the '(' (+1 for '"', +1 more for the starting character of that SSID)
-                        continue;
-                    break;                                  // break out of comparing loop
-                }
-                if(j == length)                             // it perfectly matches the AP1_SSID
-                {
-                    i += 3;                                 // get through ", to get to the RSSI without the minus mark
-                    int tmp_ssid = (ReceivedString[i] - '0')*10 + (ReceivedString[i+1] - '0');
-                                                            // convert the RSSI from character to int
-                    AP1[1] = -tmp_ssid;                     // then assign to AP1[1]
-                    return AP1;                             // finish getting AP's index number and its RSSI
-                }
-                else                                        // not match
-                {
-                    break;                                  // go for the next SSID in the ReceivedString
-                }
-            }while(ReceivedString[i] != ')');               // stop comparing if ) is met for the second time
-        }
-        while(ReceivedString[i] != '\n')                    // at this line, it means that comparing is interrupted at the middle,
-        {                                                   // so, I i++ until the present character is '\n', which is the start of the next SSID
-            i++;
-        }
-        i += 7;                                             // i += 7 to get through the "+CWLAP:"
-    }
-
-    return AP1;
-}
-*/
-//***********************************************************************************************************
-/*
  * Get RSSI from ReceivedString
  */
 int Get_RSSI(char* ReceivedString)
@@ -186,6 +144,18 @@ void SendCommand(char* SSID)
     UART_SendString("\"\r\n");
 }
 //***********************************************************************************************************
+int avr(int rssi[])
+{
+    float result=0;
+    int i;
+    for (i = 0; i < 3; i++)
+    {
+        result += rssi[i];
+    }
+    result = roundf(result/3);
+    return result;
+}
+//***********************************************************************************************************
 //  function    :   find position
 //  3 wifi device: W1(0,0), W2(x2, 0), W3(x3, y3)
 //  Oject: M(x, y)
@@ -194,33 +164,73 @@ float distance(int rssi)
 {
     //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
     int rssi1m = -37;
-    int n = 3;
+    int n = 4;
     return (powf( 10, (rssi1m - rssi)*1.0 / (10.0*n) ));
 }
+float distance_V2(int RSSI)
+{
+    float exp = (1.0/20.0) * (27.55 - 20.0*log10(2400.0) - RSSI);
+    return powf(10, exp);
+}
 // w1(0;0)      -> d1
-// w2(a;b)      -> d2 . Nếu có (0 ; y) thì chọn là W2
+// w2(a;b)      -> d2
 // w3(c;d)      -> d3
 // Object(x;y)
-void CalculatPosition(int RSSI[],float a,float b,float c,float d)
+void CalculatPosition(int RSSI[],float m,float n,float a,float b,float c,float d)
 {
+    float d12=0;
+    float d13=0;
+    float ab=0;
+    float cd=0;
+    float y1=0;
+    float y2=0;
     int i;
     for (i = 0; i < 3; i++)
     {
         dis[i]=distance(RSSI[i]);
     }
-    float d12   = dis[0]*dis[0] - dis[1]*dis[1];
-    float d13   = dis[0]*dis[0] - dis[2]*dis[2];
-    float ab    = powf(a,2) + powf(b,2);
-    float cd    = powf(c,2) + powf(d,2);
+    a =a-m;
+    b =b-n;
+    c =c-m;
+    d =d-n;
 
-    float y1 = 0.5/(b*c - d*a);
-    float y2 = c*(d12 + ab) - a*(d13 + cd);
+    d12   = dis[0]*dis[0] - dis[1]*dis[1];
+    d13   = dis[0]*dis[0] - dis[2]*dis[2];
+    ab    = powf(a,2) + powf(b,2);
+    cd    = powf(c,2) + powf(d,2);
+
+    y1 = 0.5/(b*c - d*a);
+    y2 = c*(d12 + ab) - a*(d13 + cd);
     y = y1*y2;
-    x = (0.5/c) * (d13 + cd - 2.0*y*d);
-
+    x = (0.5/c) * (d13 + cd - 2.0*y*d) + m;
+    y= y+n;
     UART_SendChar('[');
-    UART_SendFloat(x, 2);
+    UART_SendInt(x);
     UART_SendChar(',');
-    UART_SendFloat(y, 2);
+    UART_SendInt(y);
     UART_SendChar(']');
+}
+
+void SendPosition(char* SSID, char* PW, char* IP,char* port)
+{
+   UART_SendString("AT+CWJAP=\"");
+   UART_SendString(SSID);
+   UART_SendString("\",\"");
+   UART_SendString(PW);
+   UART_SendString("\"\r\n");
+   _delay_cycles(10000000);
+   UART_SendString("AT+CIPSTART=\"TCP\",\"");
+   UART_SendString(IP);
+   UART_SendString("\",");
+   UART_SendString(port);
+   UART_SendString("\r\n");
+   _delay_cycles(2000000);
+   UART_SendString("AT+CIPSEND=10\r\n");
+   _delay_cycles(2000000);
+   UART_SendInt("Nhom 0xff,");
+   UART_SendInt(x);
+   UART_SendChar(',');
+   UART_SendInt(y);
+   _delay_cycles(2000000);
+   UART_SendString("AT+CIPCLOSE\r\n");
 }
