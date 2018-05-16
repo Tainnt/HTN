@@ -11,13 +11,14 @@ void UART_SendInt(unsigned long n);
 void UART_SendFloat(float x, unsigned char length);
 char UART_GetChar();
 int Get_RSSI(char* ReceivedString);
+int GetNumLength(int x);
 void SendCommand(char* SSID);
 int avr(int rssi[]);
 float distance(int rssi);
-float distance_V2(int RSSI);
 double x_object(double d1, double d3, double x3, double y3, double yoject);
 double y_object(double d1, double d2, double y2, double x2);
-void CalculatPosition(int RSSI[],float m,float n,float a,float b,float c,float d);
-void SendPosition(char* SSID, char* PW, char* IP,char* port);
-
+void CalculatPosition(int RSSI[]);
+void ConnectTCPSever(char* SSID, char* PW, char* IP,char* port);
+void SendPosition();
+void SplitString(char* ReceivedString);
 #endif /* FUNCTIONS_H_ */
