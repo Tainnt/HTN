@@ -110,7 +110,7 @@ char UART_GetChar()
 
 int Get_RSSI(char* ReceivedString)
 {
-    unsigned int i = 8;                                     // the index of the first '"'
+    unsigned int i = 0;                                     // the index of the first '"'
     while( !( (ReceivedString[i] == ',') && (ReceivedString[i+1] == '-') ) )
     {
         i++;
@@ -160,7 +160,7 @@ float distance(int rssi)
 {
     //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
     float rssi1m = -37.85;
-    float n = 2.7;
+    float n = 4.3;
     return (powf( 10, (rssi1m - rssi)*1.0 / (10.0*n) ));
 }
 // w1(0;0)      -> d1
@@ -210,13 +210,13 @@ void ConnectTCPSever(char* SSID, char* PW, char* IP,char* port)
    UART_SendString("\",\"");
    UART_SendString(PW);
    UART_SendString("\"\r\n");
-   _delay_cycles(5000000);
+   _delay_cycles(8000000);
    UART_SendString("AT+CIPSTART=\"TCP\",\"");
    UART_SendString(IP);
    UART_SendString("\",");
    UART_SendString(port);
    UART_SendString("\r\n");
-   _delay_cycles(500000);
+   _delay_cycles(100000);
 }
 
 void SendPosition()
@@ -226,12 +226,12 @@ void SendPosition()
    UART_SendString("AT+CIPSEND=");
    UART_SendInt(len);
    UART_SendString("\r\n");
-   _delay_cycles(500000);
+   _delay_cycles(100000);
    UART_SendString("Nhom 0xff,");
    UART_SendInt(x);
    UART_SendChar(',');
    UART_SendInt(y);
-   _delay_cycles(500000);
+   _delay_cycles(100000);
    UART_SendString("AT+CIPCLOSE\r\n");
 }
 

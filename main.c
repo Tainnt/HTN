@@ -1,15 +1,17 @@
 #include <msp430.h>
 #include "functions.h"
 
-char ReceivedPos[20]="";                                    // mảng chứa các tọa độ nhận được
-unsigned int j=0;                                           // biến đếm của mảng ReceivedPos
+int check=0;
+char ReceivedPos[30]="";                                    // mảng chứa các tọa độ nhận được
+int j=0;                                           // biến đếm của mảng ReceivedPos
 int Mode=1;                                                 // Mode 0: nhận chuỗi 6 tọa độ, Mode 1: nhận các chuỗi khác
 int RcvPos=0;
-char ReceivedString[100]="";                                // mảng kí tự nhận được từ esp8266
-unsigned int i=0;                                           // biến đếm cho mảng ReceivedString
+char ReceivedString[50]="";                                // mảng kí tự nhận được từ esp8266
+int i=0;                                           // biến đếm cho mảng ReceivedString
 int EndString=0;                                            // biến trạng thái xác định chuỗi đã kết thúc
 int RSSI[3]={-70,-57,-54};                                  // mảng chứa rssi tương ứng với 3 tên wifi
-char* SSID[3]={"EmbeddedSystem","ES_02","ES_03"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
+//char* SSID[3]={"EmbeddedSystem","ES_02","ES_03"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
+char* SSID[3]={"hahaha","Tuongvypro","hahaha"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
 char *NetworkSSID="hahaha";
 char *NetworkPW="987abc123";
 char *IP="192.168.100.24";
@@ -27,11 +29,9 @@ int main(void)
     Config_Pins();                                      // thiết lập các ngõ ra vào cho hệ thống
     Config_USCI();                                      // cài đặt cho chế độ uart
     UART_SendString("AT+CWLAPOPT=1,6\r\n");             // cài đặt chế độ để 8266 chỉ trả về tên wifi và rssi
-    _delay_cycles(10000);
+    _delay_cycles(100000);
     P1OUT|=BIT0;
     ConnectTCPSever(NetworkSSID,NetworkPW,IP,Port);     // kết nối với tcp server
-    Mode=0;                                             // mode 0: nhận chuỗi 6 tọa độ
-    UART_SendString("READY to RECEIVE");
     while(!RcvPos) {}                                   // đợi đến khi nhận xong chuỗi 6 tọa độ
     SplitString(ReceivedPos);                           // cắt chuỗi và lấy ra 6 tọa đồ cần thiết
     for(n=0;n<3;n++)
@@ -60,7 +60,6 @@ int main(void)
         EndString=0;                                // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
     }
     RSSI[2]=avr(rssi_3);
-
     CalculatPosition(RSSI);                         // hàm tính toán vị trí
     SendPosition();                                 // hàm gửi lại tọa độ cho server
     P1OUT&=~BIT0;
@@ -81,15 +80,24 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
         if (Mode)
         {
             ReceivedString[i]=UART_GetChar();       // bắt đầu nhận từng kí tự từ UCA0RXBUF
-            if(ReceivedString[i]==')')              // nếu kí tự là ')' thì đã kết thúc chuỗi
+            if (ReceivedString[i]=='I' && check==1)
             {
-                i=0;                                // set lại biến đếm cho mảng ReceivedString
+                Mode=0;
+            }
+            else if(ReceivedString[i]==')')         // nếu kí tự là ')' thì đã kết thúc chuỗi rssi
+            {
                 EndString=1;                        // set biến trạng thái đã kết thúc chuỗi
+                i=-1;                               // set lại biến đếm i để tránh tràn mảng ReceivedString
+            }
+            else if (ReceivedString[i]=='+')
+            {
+                check=1;
             }
             else
-                i++;                                // nếu kí tự khác ')' thì tiếp tục nhận kí tự tiếp theo
-            if(i==100)
-                i=0;                                // nếu i=100 set lại biến i=0 để tránh tràn mảng ReceivedString
+                check=0;
+            i++;
+            if(i==50)
+                i=0;                                // nếu i=50 set lại biến i=0 để tránh tràn mảng ReceivedString
         }
         else
         {
@@ -100,6 +108,8 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
                 Mode=1;                             // chuyển về mode 1 để uart nhận các chuỗi khác
             }
             j++;
+            if(j==30)
+                j=0;                                // nếu i=30 set lại biến i=0 để tránh tràn mảng ReceivedPos
         }
     }
- }
+}
