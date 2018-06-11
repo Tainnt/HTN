@@ -2,10 +2,10 @@
 #include "functions.h"
 #include <math.h>
 
-float dis[3];
-int x=0;
-int y=0;
+int x;
+int y;
 int pos[6];
+float dis[3];
 
 void Config_Clock()
 {
@@ -13,7 +13,6 @@ void Config_Clock()
     {
         while(1);                               // do not load, trap CPU!!
     }
-
     DCOCTL = 0;                               // Select lowest DCOx and MODx settings
     BCSCTL1 = CALBC1_1MHZ;                    // Set DCO
     DCOCTL = CALDCO_1MHZ;
@@ -57,21 +56,23 @@ void UART_SendString(char* s)
     }while(s[i]!='\0');                                 //check the string is done yet? ('\0' mean the char is null)
 }
 
-void UART_SendInt(unsigned long n)
+void UART_SendInt(long n)
 {
     unsigned char buffer[16];
      unsigned char i,j;
-
+     if (n<0)
+     {
+         UART_SendChar('-');
+         n=-n;
+     }
      if(n == 0) {
          UART_SendChar('0');
           return;
      }
-
      for (i = 15; i > 0 && n > 0; i--) {
           buffer[i] = (n%10)+'0';
           n /= 10;
      }
-
      for(j = i+1; j <= 15; j++) {
          UART_SendChar(buffer[j]);
      }
@@ -88,9 +89,7 @@ void UART_SendFloat(float x, unsigned char length)
         x*=-1;
     }
     temp = (unsigned long)x;          // Chuyan thanh so nguyen.
-
     UART_SendInt(temp);
-
     x=((float)x-temp);//*mysqr(10,coma);
     if(length!=0)UART_SendChar('.');    // In ra dau "."
     while(length>0)
@@ -116,10 +115,8 @@ int Get_RSSI(char* ReceivedString)
         i++;
     }
     i += 2;                                                 // i += 2 to get to the RSSI (skip the minus character)
-
     int RSSI = (ReceivedString[i] - '0')*10 + (ReceivedString[i + 1] - '0');
     RSSI = 0 - RSSI;                                        // revert to get the minus value
-
     return RSSI;
 }
 
@@ -130,16 +127,17 @@ void SendCommand(char* SSID)
     UART_SendString("\"\r\n");
 }
 
-int avr(int rssi[])
+void Sort(int a[], int n)
 {
-    float result=0;
-    int i;
-    for (i = 0; i < 3; i++)
+    int i,j;
+    for ( i= 0; i<n - 1; i++)
+    for (j = i + 1; j<n; j++)
+    if (a[i]<a[j])
     {
-        result += rssi[i];
+        int x = a[i];
+        a[i] = a[j];
+        a[j] = x;
     }
-    result = roundf(result/3);
-    return result;
 }
 
 int GetNumLength(int x)
@@ -153,14 +151,34 @@ int GetNumLength(int x)
     return len;
 }
 
+int avr(int rssi[], int len)
+{
+    int result=0;
+    int i;
+    for (i = 0; i < len; i++)
+    {
+        result += rssi[i];
+    }
+    result = result/len;
+    return result;
+}
+
 //  function    :   find position
 //  3 wifi device: W1(0,0), W2(x2, 0), W3(x3, y3)
 //  Oject: M(x, y)
 float distance(int rssi)
 {
     //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
-    float rssi1m = -37.85;
-    float n = 4.3;
+    float rssi1m = -37;
+    float n = 3.7;
+    return (powf( 10, (rssi1m - rssi)*1.0 / (10.0*n) ));
+}
+
+float distance2(int rssi)
+{
+    //  rssi1m = +25-62 = -37 | n = 2.7 -> 4.3
+    float rssi1m = -32;
+    float n = 3.2;
     return (powf( 10, (rssi1m - rssi)*1.0 / (10.0*n) ));
 }
 // w1(0;0)      -> d1
@@ -169,60 +187,70 @@ float distance(int rssi)
 // Object(x;y)
 void CalculatPosition(int RSSI[])
 {
-    float m =pos[0];
-    float n =pos[1];
-    float a =pos[2];
-    float b =pos[3];
-    float c =pos[4];
-    float d =pos[5];
+    int m =pos[0];
+    int n =pos[1];
+    int a =pos[2];
+    int b =pos[3];
+    int c =pos[4];
+    int d =pos[5];
     float d12=0;
     float d13=0;
-    float ab=0;
-    float cd=0;
-    float y1=0;
-    float y2=0;
+    double ab=0;
+    double cd=0;
+    double y1=0;
+    double y2=0;
     int i;
-    for (i = 0; i < 3; i++)
+    dis[0]=distance2(RSSI[0])*100;
+    for (i = 1; i < 3; i++)
     {
-        dis[i]=distance(RSSI[i]);
+        dis[i]=distance(RSSI[i])*100;
     }
     a =a-m;
     b =b-n;
     c =c-m;
     d =d-n;
 
-    d12   = dis[0]*dis[0] - dis[1]*dis[1];
-    d13   = dis[0]*dis[0] - dis[2]*dis[2];
-    ab    = powf(a,2) + powf(b,2);
-    cd    = powf(c,2) + powf(d,2);
+    d12   = (double)dis[0]*(double)dis[0] - (double)dis[1]*(double)dis[1];
+    d13   = (double)dis[0]*(double)dis[0] - (double)dis[2]*(double)dis[2];
+    ab    = (double)a*(double)a + (double)b*(double)b;
+    cd    = (double)c*(double)c + (double)d*(double)d;
 
-    y1 = 0.5/(b*c - d*a);
-    y2 = c*(d12 + ab) - a*(d13 + cd);
+    y1 = 0.5/((double)b*(double)c - (double)d*(double)a);
+    y2 = (double)c*(double)(d12 + ab) - (double)a*(double)(d13 + cd);
     y = y1*y2;
-    x = (0.5/c) * (d13 + cd - 2.0*y*d) + m;
+    x = (0.5/c) * (d13 + cd - 2.0*y*(double)d) + m;
     y= y+n;
 }
 
-void ConnectTCPSever(char* SSID, char* PW, char* IP,char* port)
+void ConnectWifi(char* SSID, char* PW)
 {
    UART_SendString("AT+CWJAP=\"");
    UART_SendString(SSID);
    UART_SendString("\",\"");
    UART_SendString(PW);
    UART_SendString("\"\r\n");
-   _delay_cycles(8000000);
+   //_delay_cycles(8000000);
+}
+
+
+void ConnectTCPSever(char* IP,char* port)
+{
    UART_SendString("AT+CIPSTART=\"TCP\",\"");
    UART_SendString(IP);
    UART_SendString("\",");
    UART_SendString(port);
    UART_SendString("\r\n");
-   _delay_cycles(100000);
+   //_delay_cycles(100000);
 }
 
 void SendPosition()
 {
    int len;
    len = GetNumLength(x) + GetNumLength(y) + 11;
+   if(x<0)
+       len++;
+   if(y<0)
+       len++;
    UART_SendString("AT+CIPSEND=");
    UART_SendInt(len);
    UART_SendString("\r\n");

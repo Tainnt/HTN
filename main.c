@@ -1,5 +1,6 @@
 #include <msp430.h>
 #include "functions.h"
+#define NUM 3
 
 int check=0;
 char ReceivedPos[30]="";                                    // mảng chứa các tọa độ nhận được
@@ -8,61 +9,70 @@ int Mode=1;                                                 // Mode 0: nhận ch
 int RcvPos=0;
 char ReceivedString[50]="";                                // mảng kí tự nhận được từ esp8266
 int i=0;                                           // biến đếm cho mảng ReceivedString
-int EndString=0;                                            // biến trạng thái xác định chuỗi đã kết thúc
-int RSSI[3]={-70,-57,-54};                                  // mảng chứa rssi tương ứng với 3 tên wifi
-//char* SSID[3]={"EmbeddedSystem","ES_02","ES_03"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
-char* SSID[3]={"hahaha","Tuongvypro","hahaha"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
-char *NetworkSSID="hahaha";
-char *NetworkPW="987abc123";
-char *IP="192.168.100.24";
-char *Port="5000";
-//char* test="+IPD,24:420,840,210,0,180,690.";
-
+int EndString=0;                                   // biến trạng thái xác định chuỗi đã kết thúc
+int getOK=0;
+int RSSI[3]={-53, -70, -48};                        // mảng chứa rssi tương ứng với 3 tên wifi
+int rssi_1[NUM];                                      // mảng chứa 3 giá trị của wifi 1
+int rssi_2[NUM];                                      // mảng chứa 3 giá trị của wifi 2
+int rssi_3[NUM];                                      // mảng chứa 3 giá trị của wifi 3
 int main(void)
 {
     int n;                                              // biến đếm cho vòng lặp lấy 3 rssi
-    int rssi_1[3];                                      // mảng chứa 3 giá trị của wifi 1
-    int rssi_2[3];                                      // mảng chứa 3 giá trị của wifi 2
-    int rssi_3[3];                                      // mảng chứa 3 giá trị của wifi 3
+    char *NetworkSSID="Embedded System";
+    char *NetworkPW="12345678";
+    char *IP="192.168.1.100";
+    char *Port="9999";
+    char* SSID[3]={"Embedded System","ES_02","ES_03"};           // mảng kí tự lưu tên 3 wifi cần lấy thông tin
+
     WDTCTL = WDTPW + WDTHOLD;                           // Stop WDT
     Config_Clock();                                     // thiết lập xung cho hệ thống
     Config_Pins();                                      // thiết lập các ngõ ra vào cho hệ thống
     Config_USCI();                                      // cài đặt cho chế độ uart
     UART_SendString("AT+CWLAPOPT=1,6\r\n");             // cài đặt chế độ để 8266 chỉ trả về tên wifi và rssi
     _delay_cycles(100000);
-    P1OUT|=BIT0;
-    ConnectTCPSever(NetworkSSID,NetworkPW,IP,Port);     // kết nối với tcp server
+
+    getOK=0;
+    ConnectWifi(NetworkSSID,NetworkPW);
+    while(!getOK) {}
+    ConnectTCPSever(IP,Port);     // kết nối với tcp server
     while(!RcvPos) {}                                   // đợi đến khi nhận xong chuỗi 6 tọa độ
     SplitString(ReceivedPos);                           // cắt chuỗi và lấy ra 6 tọa đồ cần thiết
-    for(n=0;n<3;n++)
+
+    for(n=0;n<NUM;n++)
     {
+        getOK=0;
         SendCommand(SSID[0]);                       // gửi lệnh AT với tên wifi thứ nhất
-        while(!EndString) {}                        // kiểm tra đã hoàn tất nhận chuỗi từ 8266
+        while(!getOK) {}
         rssi_1[n] = Get_RSSI(ReceivedString);       // lấy rssi tương ứng với tên wifi thứ nhất
-        EndString=0;                                // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
     }
-    RSSI[0]=avr(rssi_1);
+    Sort(rssi_1,NUM);
+    //RSSI[0]=rssi_1[0];
+    RSSI[0]=avr(rssi_1, NUM);
 
-    for(n=0;n<3;n++)
+    for(n=0;n<NUM;n++)
     {
+        getOK=0;
         SendCommand(SSID[1]);                       // gửi lệnh AT với tên wifi thứ hai
-        while(!EndString) {}                        // kiểm tra đã hoàn tất nhận chuỗi từ 8266
+        while(!getOK) {}
         rssi_2[n] = Get_RSSI(ReceivedString);       // lấy rssi tương ứng với tên wifi thứ hai
-        EndString=0;                                // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
     }
-    RSSI[1]=avr(rssi_2);
+    Sort(rssi_2,NUM);
+    //RSSI[1]=rssi_2[0];
+    RSSI[1]=avr(rssi_2, NUM);
 
-    for(n=0;n<3;n++)
+    for(n=0;n<NUM;n++)
     {
-        SendCommand(SSID[2]);                       // gửi lệnh AT với tên wifi thứ ba
-        while(!EndString) {}                        // kiểm tra đã hoàn tất nhận chuỗi từ 8266
+        getOK=0;
+        SendCommand(SSID[2]);                       // gửi lệnh AT với tên wifi thứ hai
+        while(!getOK) {}
         rssi_3[n] = Get_RSSI(ReceivedString);       // lấy rssi tương ứng với tên wifi thứ ba
-        EndString=0;                                // set lại biến kết thúc chuỗi để bắt đầu nhận chuỗi mới
     }
-    RSSI[2]=avr(rssi_3);
+    Sort(rssi_3,NUM);
+    //RSSI[2]=rssi_3[0];
+    RSSI[2]=avr(rssi_3, NUM);
+
     CalculatPosition(RSSI);                         // hàm tính toán vị trí
     SendPosition();                                 // hàm gửi lại tọa độ cho server
-    P1OUT&=~BIT0;
 }
 
 //  Echo back RXed character, confirm TX buffer is ready first
@@ -75,41 +85,34 @@ void __attribute__ ((interrupt(USCIAB0RX_VECTOR))) USCI0RX_ISR (void)
 #error Compiler not supported!
 #endif
 {
-    if(!EndString)                                  // kiểm tra biến trạng thái chuỗi trước đó đã kết thúc chưa
+    if (Mode)
     {
-        if (Mode)
+        ReceivedString[i]=UART_GetChar();       // bắt đầu nhận từng kí tự từ UCA0RXBUF
+        if (ReceivedString[i]=='I' && check==1)
+            Mode=0;
+        else if (ReceivedString[i]=='K' && check==1)
         {
-            ReceivedString[i]=UART_GetChar();       // bắt đầu nhận từng kí tự từ UCA0RXBUF
-            if (ReceivedString[i]=='I' && check==1)
-            {
-                Mode=0;
-            }
-            else if(ReceivedString[i]==')')         // nếu kí tự là ')' thì đã kết thúc chuỗi rssi
-            {
-                EndString=1;                        // set biến trạng thái đã kết thúc chuỗi
-                i=-1;                               // set lại biến đếm i để tránh tràn mảng ReceivedString
-            }
-            else if (ReceivedString[i]=='+')
-            {
-                check=1;
-            }
-            else
-                check=0;
-            i++;
-            if(i==50)
-                i=0;                                // nếu i=50 set lại biến i=0 để tránh tràn mảng ReceivedString
+            getOK=1;
+            i=-1;
         }
+        else if (ReceivedString[i]=='+' || ReceivedString[i]=='O')
+            check=1;
         else
+            check=0;
+        i++;
+        if(i==50)
+            i=0;                                // nếu i=50 set lại biến i=0 để tránh tràn mảng ReceivedString
+    }
+    else
+    {
+        ReceivedPos[j]=UART_GetChar();
+        if (ReceivedPos[j]=='.')                // kiểm tra nếu đến dấu '.' là kết thúc chuỗi 6 tọa độ
         {
-            ReceivedPos[j]=UART_GetChar();
-            if (ReceivedPos[j]=='.')                // kiểm tra nếu đến dấu '.' là kết thúc chuỗi 6 tọa độ
-            {
-                RcvPos=1;                           // bật cờ thông báo đã nhận xong chuỗi 6 tọa độ
-                Mode=1;                             // chuyển về mode 1 để uart nhận các chuỗi khác
-            }
-            j++;
-            if(j==30)
-                j=0;                                // nếu i=30 set lại biến i=0 để tránh tràn mảng ReceivedPos
+            RcvPos=1;                           // bật cờ thông báo đã nhận xong chuỗi 6 tọa độ
+            Mode=1;                             // chuyển về mode 1 để uart nhận các chuỗi khác
         }
+        j++;
+        if(j==30)
+            j=0;                                // nếu i=30 set lại biến i=0 để tránh tràn mảng ReceivedPos
     }
 }
